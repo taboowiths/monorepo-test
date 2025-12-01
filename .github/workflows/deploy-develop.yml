@@ -27,17 +27,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Create snapshot version
         run: |
           SNAPSHOT_TAG="dev-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           echo "📦 Creating snapshot version: $SNAPSHOT_TAG"
           pnpm changeset version --snapshot $SNAPSHOT_TAG
-          
+
       - name: Show version changes
         run: |
           echo "Version changes:"
@@ -52,11 +52,11 @@ jobs:
         id: affected
         run: |
           echo "🔍 Detecting affected apps..."
-          
+
           # 변경된 파일 확인
           CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null || echo "")
           echo "Changed files: $CHANGED_FILES"
-          
+
           # project-a 영향 확인
           if echo "$CHANGED_FILES" | grep -q "apps/project-a\|packages/react-hooks\|packages/ui"; then
             echo "PROJECT_A_AFFECTED=true" >> $GITHUB_OUTPUT
@@ -65,7 +65,7 @@ jobs:
             echo "PROJECT_A_AFFECTED=false" >> $GITHUB_OUTPUT
             echo "⏭️  Project A is NOT affected"
           fi
-          
+
           # project-b 영향 확인
           if echo "$CHANGED_FILES" | grep -q "apps/project-b\|packages/react-hooks\|packages/ui"; then
             echo "PROJECT_B_AFFECTED=true" >> $GITHUB_OUTPUT

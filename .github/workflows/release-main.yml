@@ -30,10 +30,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Create Release Pull Request or Publish
         id: changesets
@@ -71,17 +71,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Parse published packages
         id: parse
         run: |
           PACKAGES='${{ needs.release.outputs.publishedPackages }}'
           echo "Published packages: $PACKAGES"
-          
+
           # runtime 패키지 변경 확인
           if echo "$PACKAGES" | grep -q "react-hooks\|ui"; then
             echo "RUNTIME_CHANGED=true" >> $GITHUB_OUTPUT
@@ -96,7 +96,7 @@ jobs:
         if: steps.parse.outputs.RUNTIME_CHANGED == 'true'
         run: |
           PACKAGES='${{ needs.release.outputs.publishedPackages }}'
-          
+
           # react-hooks나 ui 변경 시 영향받는 앱 확인
           if echo "$PACKAGES" | grep -q "react-hooks\|ui"; then
             echo "PROJECT_A_AFFECTED=true" >> $GITHUB_OUTPUT

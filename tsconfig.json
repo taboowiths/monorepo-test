@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/project-a" },
+    { "path": "./apps/project-b" },
+    { "path": "./packages/react-hooks" },
+    { "path": "./packages/ui" }
+  ]
+}

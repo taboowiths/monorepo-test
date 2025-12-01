@@ -1,0 +1,154 @@
+name: Release to Production
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm version:prod
+          publish: pnpm release:prod
+          commit: "chore: version packages"
+          title: "chore: version packages for production"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show published packages
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          echo "Published packages:"
+          echo '${{ steps.changesets.outputs.publishedPackages }}'
+
+  deploy:
+    needs: release
+    runs-on: ubuntu-latest
+    if: needs.release.outputs.published == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Parse published packages
+        id: parse
+        run: |
+          PACKAGES='${{ needs.release.outputs.publishedPackages }}'
+          echo "Published packages: $PACKAGES"
+          
+          # runtime 패키지 변경 확인
+          if echo "$PACKAGES" | grep -q "react-hooks\|ui"; then
+            echo "RUNTIME_CHANGED=true" >> $GITHUB_OUTPUT
+            echo "✅ Runtime packages changed"
+          else
+            echo "RUNTIME_CHANGED=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Only dev packages changed"
+          fi
+
+      - name: Detect affected apps
+        id: affected
+        if: steps.parse.outputs.RUNTIME_CHANGED == 'true'
+        run: |
+          PACKAGES='${{ needs.release.outputs.publishedPackages }}'
+          
+          # react-hooks나 ui 변경 시 영향받는 앱 확인
+          if echo "$PACKAGES" | grep -q "react-hooks\|ui"; then
+            echo "PROJECT_A_AFFECTED=true" >> $GITHUB_OUTPUT
+            echo "PROJECT_B_AFFECTED=true" >> $GITHUB_OUTPUT
+            echo "✅ Both projects affected (runtime packages changed)"
+          fi
+
+      - name: Build packages
+        run: |
+          echo "🔨 Building packages..."
+          pnpm --filter './packages/*' build || echo "No build script"
+
+      - name: Build Project A
+        if: steps.affected.outputs.PROJECT_A_AFFECTED == 'true'
+        run: |
+          echo "🏗️  Building Project A for PRODUCTION..."
+          pnpm --filter @test/project-a build
+          echo "✅ Project A build completed"
+
+      - name: Build Project B
+        if: steps.affected.outputs.PROJECT_B_AFFECTED == 'true'
+        run: |
+          echo "🏗️  Building Project B for PRODUCTION..."
+          pnpm --filter @test/project-b build
+          echo "✅ Project B build completed"
+
+      - name: Simulate Deploy Project A
+        if: steps.affected.outputs.PROJECT_A_AFFECTED == 'true'
+        run: |
+          echo "🚀 [SIMULATION] Deploying Project A to PRODUCTION..."
+          echo "   Environment: Production"
+          echo "   URL: https://project-a.example.com"
+          echo "   Version: $(cat apps/project-a/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]')"
+          echo "✅ Project A deployment simulated"
+
+      - name: Simulate Deploy Project B
+        if: steps.affected.outputs.PROJECT_B_AFFECTED == 'true'
+        run: |
+          echo "🚀 [SIMULATION] Deploying Project B to PRODUCTION..."
+          echo "   Environment: Production"
+          echo "   URL: https://project-b.example.com"
+          echo "   Version: $(cat apps/project-b/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]')"
+          echo "✅ Project B deployment simulated"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published Packages" >> $GITHUB_STEP_SUMMARY
+          echo '${{ needs.release.outputs.publishedPackages }}' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Projects" >> $GITHUB_STEP_SUMMARY
+          echo "- Project A: ${{ steps.affected.outputs.PROJECT_A_AFFECTED }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Project B: ${{ steps.affected.outputs.PROJECT_B_AFFECTED }}" >> $GITHUB_STEP_SUMMARY

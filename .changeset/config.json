@@ -7,9 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@test/eslint-config",
-    "@test/prettier-config",
-    "@test/typescript-config"
-  ]
+  "ignore": []
 }

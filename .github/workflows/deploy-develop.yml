@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -32,17 +33,47 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Check for changesets
+        id: check_changesets
+        run: |
+          if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README)" ]; then
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+            echo "✅ Changesets found"
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No changesets to process"
+          fi
+
       - name: Create snapshot version
+        if: steps.check_changesets.outputs.has_changesets == 'true'
         run: |
           SNAPSHOT_TAG="dev-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           echo "📦 Creating snapshot version: $SNAPSHOT_TAG"
           pnpm changeset version --snapshot $SNAPSHOT_TAG
 
       - name: Show version changes
+        if: steps.check_changesets.outputs.has_changesets == 'true'
         run: |
-          echo "Version changes:"
+          echo "📋 Version changes:"
           git diff --name-only | grep package.json || echo "No package.json changes"
+          
+          echo ""
+          echo "📦 Updated packages:"
+          git diff packages/*/package.json apps/*/package.json | grep '"version"' || echo "No version changes"
 
+      - name: Commit version changes
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git rm .changeset/*.md 2>/dev/null || true
+          git add .changeset/
+          
+          git add -A
+          git commit -m "chore: version snapshot packages [skip ci]" || echo "No changes to commit"
+          git push origin develop
+          
       - name: Build packages
         run: |
           echo "🔨 Building packages..."
@@ -52,11 +83,12 @@ jobs:
         id: affected
         run: |
           echo "🔍 Detecting affected apps..."
-
-          # 변경된 파일 확인
-          CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null || echo "")
+          
+          # 이번 push의 실제 변경사항 확인 (버전 커밋 전)
+          # ${{ github.event.before }}는 push 이전 커밋
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} HEAD~1 2>/dev/null || git diff --name-only HEAD~2 HEAD~1 2>/dev/null || echo "")
           echo "Changed files: $CHANGED_FILES"
-
+          
           # project-a 영향 확인
           if echo "$CHANGED_FILES" | grep -q "apps/project-a\|packages/react-hooks\|packages/ui"; then
             echo "PROJECT_A_AFFECTED=true" >> $GITHUB_OUTPUT
@@ -65,7 +97,7 @@ jobs:
             echo "PROJECT_A_AFFECTED=false" >> $GITHUB_OUTPUT
             echo "⏭️  Project A is NOT affected"
           fi
-
+          
           # project-b 영향 확인
           if echo "$CHANGED_FILES" | grep -q "apps/project-b\|packages/react-hooks\|packages/ui"; then
             echo "PROJECT_B_AFFECTED=true" >> $GITHUB_OUTPUT
@@ -113,6 +145,9 @@ jobs:
         if: always()
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changesets" >> $GITHUB_STEP_SUMMARY
+          echo "- Has changesets: ${{ steps.check_changesets.outputs.has_changesets }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Affected Projects" >> $GITHUB_STEP_SUMMARY
           echo "- Project A: ${{ steps.affected.outputs.PROJECT_A_AFFECTED }}" >> $GITHUB_STEP_SUMMARY

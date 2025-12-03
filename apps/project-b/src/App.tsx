@@ -10,7 +10,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Project B - Test Application</h1>
+      <h1>Project B - Test Application (beta)</h1>
 
       <div className="card">
         <h2>Counter Hook Test</h2>

@@ -1,0 +1,79 @@
+name: Validate Main PR
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter './packages/*' build
+
+      - name: Build apps
+        run: pnpm --filter './apps/*' build
+
+      - name: Show version info
+        run: |
+          echo "📦 Versions that will be released:"
+          echo ""
+          echo "React Hooks:"
+          cat packages/react-hooks/package.json | grep '"version"'
+          echo ""
+          echo "UI Components:"
+          cat packages/ui/package.json | grep '"version"'
+          echo ""
+          echo "Project A:"
+          cat apps/project-a/package.json | grep '"version"'
+          echo ""
+          echo "Project B:"
+          cat apps/project-b/package.json | grep '"version"'
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reactHooksVersion = JSON.parse(fs.readFileSync('packages/react-hooks/package.json')).version;
+            const uiVersion = JSON.parse(fs.readFileSync('packages/ui/package.json')).version;
+            const projectAVersion = JSON.parse(fs.readFileSync('apps/project-a/package.json')).version;
+            const projectBVersion = JSON.parse(fs.readFileSync('apps/project-b/package.json')).version;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 Production Release Preview
+              
+              ### Versions
+              - **react-hooks**: ${reactHooksVersion}
+              - **ui**: ${uiVersion}
+              - **project-a**: ${projectAVersion}
+              - **project-b**: ${projectBVersion}
+              
+              ### Status
+              ✅ All builds passed
+              ✅ Ready for production deployment
+              
+              Merge this PR to deploy to production.`
+            })

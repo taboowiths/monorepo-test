@@ -1,6 +1,6 @@
 {
   "name": "@test/react-hooks",
-  "version": "0.0.0-dev-20251202-2cb1e0f-20251202014426",
+  "version": "0.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

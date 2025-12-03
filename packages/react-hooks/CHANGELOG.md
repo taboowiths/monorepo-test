@@ -1,5 +1,11 @@
 # @test/react-hooks
 
+## 1.0.0
+
+### Major Changes
+
+- d355ada: modify useDebounce hook
+
 ## 0.0.0
 
 ### Major Changes

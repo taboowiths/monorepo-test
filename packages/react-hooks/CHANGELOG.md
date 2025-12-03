@@ -1,5 +1,11 @@
 # @test/react-hooks
 
+## 2.0.0
+
+### Major Changes
+
+- 973c3cf: modify workflows
+
 ## 1.0.0
 
 ### Major Changes

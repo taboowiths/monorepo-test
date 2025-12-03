@@ -1,5 +1,12 @@
 # @test/project-b
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies [973c3cf]
+  - @test/react-hooks@2.0.0
+
 ## 0.0.1
 
 ### Patch Changes

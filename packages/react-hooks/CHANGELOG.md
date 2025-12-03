@@ -1,5 +1,11 @@
 # @test/react-hooks
 
+## 0.0.0-beta-20251203084009
+
+### Major Changes
+
+- f216dbe: modify workflows
+
 ## 3.0.0
 
 ### Major Changes

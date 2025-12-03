@@ -1,5 +1,12 @@
 # @test/project-a
 
+## 0.0.0-beta-20251203084009
+
+### Patch Changes
+
+- Updated dependencies [f216dbe]
+  - @test/react-hooks@0.0.0-beta-20251203084009
+
 ## 0.0.3
 
 ### Patch Changes

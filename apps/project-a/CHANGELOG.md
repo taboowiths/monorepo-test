@@ -1,5 +1,11 @@
 # @test/project-a
 
+## 0.0.0-dev-20251203090610
+
+### Minor Changes
+
+- Downgrade packages version
+
 ## 0.0.0-beta-20251203084701
 
 ### Major Changes

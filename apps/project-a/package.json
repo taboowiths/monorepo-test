@@ -1,0 +1,30 @@
+{
+  "name": "@test/project-a",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@test/react-hooks": "workspace:*",
+    "@test/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@test/eslint-config": "workspace:1.0.0",
+    "@test/prettier-config": "workspace:1.0.0",
+    "@test/typescript-config": "workspace:1.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,164 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: true
+
+jobs:
+  version-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Check for changesets
+        id: check_changesets
+        run: |
+          if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README)" ]; then
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+            echo "✅ Changesets found"
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No changesets to process"
+          fi
+
+      - name: Detect affected apps (before version update)
+        id: affected
+        run: |
+          echo "🔍 Detecting affected apps..."
+          
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} HEAD)
+          else
+            CHANGED_FILES=$(git ls-files)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          if echo "$CHANGED_FILES" | grep -q "apps/project-a\|packages/react-hooks\|packages/ui"; then
+            echo "PROJECT_A_AFFECTED=true" >> $GITHUB_OUTPUT
+            echo "✅ Project A is affected"
+          else
+            echo "PROJECT_A_AFFECTED=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Project A is NOT affected"
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "apps/project-b\|packages/react-hooks\|packages/ui"; then
+            echo "PROJECT_B_AFFECTED=true" >> $GITHUB_OUTPUT
+            echo "✅ Project B is affected"
+          else
+            echo "PROJECT_B_AFFECTED=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Project B is NOT affected"
+          fi
+
+      # develop 브랜치에서 버전 업데이트 수행
+      - name: Update versions
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        run: |
+          echo "📦 Updating package versions"
+          pnpm changeset version
+
+      - name: Show version changes
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        run: |
+          echo "📋 Version changes:"
+          git diff --name-only | grep package.json || echo "No package.json changes"
+          
+          echo ""
+          echo "📦 Updated packages:"
+          git diff packages/*/package.json apps/*/package.json | grep '"version"' || echo "No version changes"
+
+      - name: Commit version changes
+        if: steps.check_changesets.outputs.has_changesets == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # changeset 파일들 삭제 (처리 완료)
+          find .changeset -name "*.md" ! -name "README.md" -type f -delete
+          
+          git add -A
+          git commit -m "chore: version packages [skip ci]" || echo "No changes to commit"
+          git push origin develop
+
+      - name: Build packages
+        run: |
+          echo "🔨 Building packages..."
+          pnpm --filter './packages/*' build || echo "No build script"
+
+      - name: Build Project A
+        if: steps.affected.outputs.PROJECT_A_AFFECTED == 'true'
+        run: |
+          echo "🏗️  Building Project A for DEV environment..."
+          pnpm --filter @test/project-a build
+          echo "✅ Project A build completed"
+
+      - name: Build Project B
+        if: steps.affected.outputs.PROJECT_B_AFFECTED == 'true'
+        run: |
+          echo "🏗️  Building Project B for DEV environment..."
+          pnpm --filter @test/project-b build
+          echo "✅ Project B build completed"
+
+      - name: Deploy Project A
+        if: steps.affected.outputs.PROJECT_A_AFFECTED == 'true'
+        run: |
+          echo "🚀 [SIMULATION] Deploying Project A to DEV..."
+          echo "   Environment: Development"
+          echo "   URL: https://dev-project-a.example.com"
+          VERSION=$(cat apps/project-a/package.json | grep '"version"' | head -1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+          echo "   Version: $VERSION"
+          echo "✅ Project A deployed"
+
+      - name: Deploy Project B
+        if: steps.affected.outputs.PROJECT_B_AFFECTED == 'true'
+        run: |
+          echo "🚀 [SIMULATION] Deploying Project B to DEV..."
+          echo "   Environment: Development"
+          echo "   URL: https://dev-project-b.example.com"
+          VERSION=$(cat apps/project-b/package.json | grep '"version"' | head -1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+          echo "   Version: $VERSION"
+          echo "✅ Project B deployed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Development Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Updates" >> $GITHUB_STEP_SUMMARY
+          echo "- Changesets processed: ${{ steps.check_changesets.outputs.has_changesets }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Affected Projects" >> $GITHUB_STEP_SUMMARY
+          echo "- Project A: ${{ steps.affected.outputs.PROJECT_A_AFFECTED }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Project B: ${{ steps.affected.outputs.PROJECT_B_AFFECTED }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: develop" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: Development" >> $GITHUB_STEP_SUMMARY

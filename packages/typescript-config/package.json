@@ -1,0 +1,14 @@
+{
+  "name": "@test/typescript-config",
+  "version": "1.0.0",
+  "main": "base.json",
+  "private": true,
+  "files": [
+    "base.json",
+    "react.json"
+  ],
+  "exports": {
+    "./base.json": "./base.json",
+    "./react.json": "./react.json"
+  }
+}

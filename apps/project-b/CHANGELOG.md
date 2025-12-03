@@ -1,0 +1,23 @@
+# @test/project-b
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [d355ada]
+  - @test/react-hooks@1.0.0
+
+## 0.0.0
+
+### Patch Changes
+
+- Updated dependencies [22857e4]
+- Updated dependencies [22857e4]
+  - @test/react-hooks@0.0.0
+
+## 0.0.0-dev-20251202-2cb1e0f-20251202014426
+
+### Patch Changes
+
+- Updated dependencies [2cb1e0f]
+  - @test/react-hooks@0.0.0-dev-20251202-2cb1e0f-20251202014426

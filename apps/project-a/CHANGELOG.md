@@ -1,5 +1,11 @@
 # @test/project-a
 
+## 0.0.0-beta-20251203084701
+
+### Major Changes
+
+- 390be07: Add new dashboard widget
+
 ## 0.0.0-beta-20251203084009
 
 ### Patch Changes

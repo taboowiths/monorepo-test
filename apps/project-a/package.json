@@ -1,6 +1,6 @@
 {
   "name": "@test/project-a",
-  "version": "0.0.0-beta-20251203084009",
+  "version": "0.0.0-beta-20251203084701",
   "private": true,
   "type": "module",
   "scripts": {

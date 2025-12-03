@@ -1,0 +1,207 @@
+name: Selective Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  # 변경사항 감지
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      project-a: ${{ steps.changes.outputs.project-a }}
+      project-b: ${{ steps.changes.outputs.project-b }}
+      packages: ${{ steps.changes.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            project-a:
+              - 'apps/project-a/**'
+            project-b:
+              - 'apps/project-b/**'
+            packages:
+              - 'packages/**'
+
+  # ====== Project A Development ======
+  deploy-project-a-dev:
+    needs: detect-changes
+    if: |
+      github.ref == 'refs/heads/develop' && 
+      (needs.detect-changes.outputs.project-a == 'true' || 
+       needs.detect-changes.outputs.packages == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build shared packages
+        run: |
+          pnpm --filter @test/ui build
+          pnpm --filter @test/react-hooks build
+      
+      - name: Build Project A (Development)
+        run: pnpm --filter @test/project-a build
+        env:
+          VITE_APP_ENV: development
+      
+      - name: Deploy Project A to Development
+        run: |
+          echo "🚀 [Mock] Deploying Project A to Development..."
+          echo "  - App: apps/project-a (@test/project-a)"
+          echo "  - Environment: development (VITE_APP_ENV=$VITE_APP_ENV)"
+          echo "  - Note: This is a mock deployment. No external services are called."
+      
+      - name: Notify Slack
+        if: success()
+        run: |
+          echo "✅ [Mock] Project A deployed to Development (Slack notification skipped)"
+
+  # ====== Project B Development ======
+  deploy-project-b-dev:
+    needs: detect-changes
+    if: |
+      github.ref == 'refs/heads/develop' && 
+      (needs.detect-changes.outputs.project-b == 'true' || 
+       needs.detect-changes.outputs.packages == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build shared packages
+        run: |
+          pnpm --filter @test/ui build
+          pnpm --filter @test/react-hooks build
+      
+      - name: Build Project B (Development)
+        run: pnpm --filter @test/project-b build
+        env:
+          VITE_APP_ENV: development
+      
+      - name: Deploy Project B to Development
+        run: |
+          echo "🚀 [Mock] Deploying Project B to Development..."
+          echo "  - App: apps/project-b (@test/project-b)"
+          echo "  - Environment: development (VITE_APP_ENV=$VITE_APP_ENV)"
+          echo "  - Note: This is a mock deployment. No external services are called."
+      
+      - name: Notify Slack
+        if: success()
+        run: |
+          echo "✅ [Mock] Project B deployed to Development (Slack notification skipped)"
+
+  # ====== Project A Production ======
+  deploy-project-a-prod:
+    needs: detect-changes
+    if: |
+      github.ref == 'refs/heads/main' && 
+      (needs.detect-changes.outputs.project-a == 'true' || 
+       needs.detect-changes.outputs.packages == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build shared packages
+        run: |
+          pnpm --filter @test/ui build
+          pnpm --filter @test/react-hooks build
+      
+      - name: Build Project A (Production)
+        run: pnpm --filter @test/project-a build
+        env:
+          VITE_APP_ENV: production
+      
+      - name: Deploy Project A to Production
+        run: |
+          echo "🚀 [Mock] Deploying Project A to Production..."
+          echo "  - App: apps/project-a (@test/project-a)"
+          echo "  - Environment: production (VITE_APP_ENV=$VITE_APP_ENV)"
+          echo "  - Note: This is a mock deployment. No external services are called."
+      
+      - name: Notify Slack
+        if: success()
+        run: |
+          echo "✅ [Mock] Project A deployed to Production (Slack notification skipped)"
+
+  # ====== Project B Production ======
+  deploy-project-b-prod:
+    needs: detect-changes
+    if: |
+      github.ref == 'refs/heads/main' && 
+      (needs.detect-changes.outputs.project-b == 'true' || 
+       needs.detect-changes.outputs.packages == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build shared packages
+        run: |
+          pnpm --filter @test/ui build
+          pnpm --filter @test/react-hooks build
+      
+      - name: Build Project B (Production)
+        run: pnpm --filter @test/project-b build
+        env:
+          VITE_APP_ENV: production
+      
+      - name: Deploy Project B to Production
+        run: |
+          echo "🚀 [Mock] Deploying Project B to Production..."
+          echo "  - App: apps/project-b (@test/project-b)"
+          echo "  - Environment: production (VITE_APP_ENV=$VITE_APP_ENV)"
+          echo "  - Note: This is a mock deployment. No external services are called."

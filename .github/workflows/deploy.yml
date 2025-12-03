@@ -123,6 +123,7 @@ jobs:
 
   # ====== Project A Production ======
   deploy-project-a-prod:
+    environment: production
     needs: detect-changes
     if: |
       github.ref == 'refs/heads/main' && 
@@ -168,6 +169,7 @@ jobs:
 
   # ====== Project B Production ======
   deploy-project-b-prod:
+    environment: production
     needs: detect-changes
     if: |
       github.ref == 'refs/heads/main' && 

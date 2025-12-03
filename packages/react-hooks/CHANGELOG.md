@@ -1,5 +1,17 @@
 # @test/react-hooks
 
+## 3.0.0
+
+### Major Changes
+
+- 636d2bf: Added useLocalStorage hook for persistent state management
+
+## 2.0.0
+
+### Major Changes
+
+- 973c3cf: modify workflows
+
 ## 1.0.0
 
 ### Major Changes

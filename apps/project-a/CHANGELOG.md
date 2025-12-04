@@ -1,5 +1,11 @@
 # @test/project-a
 
+## 0.0.0
+
+### Major Changes
+
+- release v1.0.0
+
 ## 0.0.0-dev-20251203090610
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @test/project-a
 
+## 1.0.0
+
+### Major Changes
+
+- release test
+
 ## 0.0.0
 
 ### Major Changes

@@ -19,19 +19,19 @@ jobs:
         with:
           fetch-depth: 0 # 비교를 위해 전체 히스토리 필요
 
-      - name: Setup Node & pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'pnpm'
+          # cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Determine Base Ref
         id: set-base

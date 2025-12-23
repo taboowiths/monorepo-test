@@ -4,14 +4,14 @@ import './App.css';
 import { Button, Input } from '@test/ui';
 
 function App() {
-  const { count, increment, decrement, reset } = useCounter(0);
+  const { count, increment, decrement, reset } = useCounter(4);
   const { value: isVisible, toggle } = useToggle(false);
   const [inputValue, setInputValue] = useState('');
 
   return (
     <div className="App">
       <h1>Project A - Test Application</h1>
-
+      <h2>This is a test application for the Project A</h2>
       <div className="card">
         <h2>Counter Hook Test</h2>
         <p>Count: {count}</p>

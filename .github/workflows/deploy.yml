@@ -1,209 +1,89 @@
-name: Selective Deploy
+name: Selective CI/CD (Multi-Branch)
 
 on:
   push:
     branches:
       - main
       - develop
-  workflow_dispatch:
+  workflow_dispatch: # 수동 실행 버튼 추가
 
 jobs:
-  # 변경사항 감지
-  detect-changes:
+  # 1. 변경사항 감지 및 빌드
+  build-and-test:
     runs-on: ubuntu-latest
     outputs:
-      project-a: ${{ steps.changes.outputs.project-a }}
-      project-b: ${{ steps.changes.outputs.project-b }}
-      packages: ${{ steps.changes.outputs.packages }}
+      project_a: ${{ steps.check.outputs.project_a }}
+      project_b: ${{ steps.check.outputs.project_b }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      
-      - uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            project-a:
-              - 'apps/project-a/**'
-            project-b:
-              - 'apps/project-b/**'
-            packages:
-              - 'packages/**'
+          fetch-depth: 0 # 비교를 위해 전체 히스토리 필요
 
-  # ====== Project A Development ======
-  deploy-project-a-dev:
-    needs: detect-changes
-    if: |
-      github.ref == 'refs/heads/develop' && 
-      (needs.detect-changes.outputs.project-a == 'true' || 
-       needs.detect-changes.outputs.packages == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - uses: actions/setup-node@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'pnpm'
-      
+          # cache: 'pnpm'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
-      - name: Build shared packages
-        run: |
-          pnpm --filter @test/ui build
-          pnpm --filter @test/react-hooks build
-      
-      - name: Build Project A (Development)
-        run: pnpm --filter @test/project-a build
-        env:
-          VITE_APP_ENV: development
-      
-      - name: Deploy Project A to Development
-        run: |
-          echo "🚀 [Mock] Deploying Project A to Development..."
-          echo "  - App: apps/project-a (@test/project-a)"
-          echo "  - Environment: development (VITE_APP_ENV=$VITE_APP_ENV)"
-          echo "  - Note: This is a mock deployment. No external services are called."
-      
-      - name: Notify Slack
-        if: success()
-        run: |
-          echo "✅ [Mock] Project A deployed to Development (Slack notification skipped)"
 
-  # ====== Project B Development ======
-  deploy-project-b-dev:
-    needs: detect-changes
-    if: |
-      github.ref == 'refs/heads/develop' && 
-      (needs.detect-changes.outputs.project-b == 'true' || 
-       needs.detect-changes.outputs.packages == 'true')
+      - name: Determine Base Ref
+        id: set-base
+        run: |
+          # main 브랜치면 이전 운영 배포(origin/main)와 비교
+          # develop 브랜치면 직전 커밋(HEAD^1)과 비교
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "BASE=origin/main" >> $GITHUB_ENV
+          else
+            echo "BASE=HEAD^1" >> $GITHUB_ENV
+          fi
+
+      - name: Turbo Build
+        # 결정된 BASE를 기준으로 영향받는 프로젝트만 빌드
+        run: pnpm turbo build --filter=...[${{ env.BASE }}]
+
+      - name: Check which projects changed
+        id: check
+        # 빌드 결과물(dist) 폴더 존재 여부로 변경 프로젝트 식별
+        # Turborepo가 빌드하지 않은 프로젝트는 dist 폴더가 갱신되지 않거나 스킵됨
+        run: |
+          if [ -d "apps/project-a/dist" ]; then echo "project_a=true" >> $GITHUB_OUTPUT; fi
+          if [ -d "apps/project-b/dist" ]; then echo "project_b=true" >> $GITHUB_OUTPUT; fi
+
+  # 2. Develop 환경 배포 (자동 실행)
+  deploy-dev:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Build shared packages
+      - name: Project A Dev Deploy
+        if: needs.build-and-test.outputs.project_a == 'true'
         run: |
-          pnpm --filter @test/ui build
-          pnpm --filter @test/react-hooks build
-      
-      - name: Build Project B (Development)
-        run: pnpm --filter @test/project-b build
-        env:
-          VITE_APP_ENV: development
-      
-      - name: Deploy Project B to Development
-        run: |
-          echo "🚀 [Mock] Deploying Project B to Development..."
-          echo "  - App: apps/project-b (@test/project-b)"
-          echo "  - Environment: development (VITE_APP_ENV=$VITE_APP_ENV)"
-          echo "  - Note: This is a mock deployment. No external services are called."
-      
-      - name: Notify Slack
-        if: success()
-        run: |
-          echo "✅ [Mock] Project B deployed to Development (Slack notification skipped)"
+          echo "🚀 Project A를 Develop 서버로 배포합니다."
+          # 실제 배포 명령어 (예: aws s3 sync, vercel deploy 등)
 
-  # ====== Project A Production ======
-  deploy-project-a-prod:
-    environment: production
-    needs: detect-changes
-    if: |
-      github.ref == 'refs/heads/main' && 
-      (needs.detect-changes.outputs.project-a == 'true' || 
-       needs.detect-changes.outputs.packages == 'true')
+      - name: Project B Dev Deploy
+        if: needs.build-and-test.outputs.project_b == 'true'
+        run: |
+          echo "🚀 Project B를 Develop 서버로 배포합니다."
+
+  # 3. Production 환경 배포 (승인 필요)
+  deploy-prod:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    environment: production # GitHub Repo -> Settings -> Environments -> production 설정 필요
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Build shared packages
+      - name: Project A Prod Deploy
+        if: needs.build-and-test.outputs.project_a == 'true'
         run: |
-          pnpm --filter @test/ui build
-          pnpm --filter @test/react-hooks build
-      
-      - name: Build Project A (Production)
-        run: pnpm --filter @test/project-a build
-        env:
-          VITE_APP_ENV: production
-      
-      - name: Deploy Project A to Production
-        run: |
-          echo "🚀 [Mock] Deploying Project A to Production..."
-          echo "  - App: apps/project-a (@test/project-a)"
-          echo "  - Environment: production (VITE_APP_ENV=$VITE_APP_ENV)"
-          echo "  - Note: This is a mock deployment. No external services are called."
-      
-      - name: Notify Slack
-        if: success()
-        run: |
-          echo "✅ [Mock] Project A deployed to Production (Slack notification skipped)"
+          echo "🔥 Project A 운영 배포 시작 (승인 완료)"
 
-  # ====== Project B Production ======
-  deploy-project-b-prod:
-    environment: production
-    needs: detect-changes
-    if: |
-      github.ref == 'refs/heads/main' && 
-      (needs.detect-changes.outputs.project-b == 'true' || 
-       needs.detect-changes.outputs.packages == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Build shared packages
+      - name: Project B Prod Deploy
+        if: needs.build-and-test.outputs.project_b == 'true'
         run: |
-          pnpm --filter @test/ui build
-          pnpm --filter @test/react-hooks build
-      
-      - name: Build Project B (Production)
-        run: pnpm --filter @test/project-b build
-        env:
-          VITE_APP_ENV: production
-      
-      - name: Deploy Project B to Production
-        run: |
-          echo "🚀 [Mock] Deploying Project B to Production..."
-          echo "  - App: apps/project-b (@test/project-b)"
-          echo "  - Environment: production (VITE_APP_ENV=$VITE_APP_ENV)"
-          echo "  - Note: This is a mock deployment. No external services are called."
+          echo "🔥 Project B 운영 배포 시작 (승인 완료)"

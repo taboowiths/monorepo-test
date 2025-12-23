@@ -13,7 +13,7 @@ export function Input({ value, onChange, placeholder }: InputProps) {
       placeholder={placeholder}
       style={{
         padding: "8px",
-        borderRadius: "4px",
+        borderRadius: "2px",
         border: "1px solid #ccc",
       }}
     />

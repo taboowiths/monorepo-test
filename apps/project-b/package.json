@@ -1,6 +1,6 @@
 {
   "name": "@test/project-b",
-  "version": "0.0.0-dev-20251203090610",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,9 +16,9 @@
     "@test/ui": "workspace:*"
   },
   "devDependencies": {
-    "@test/eslint-config": "workspace:1.0.0",
-    "@test/prettier-config": "workspace:1.0.0",
-    "@test/typescript-config": "workspace:1.0.0",
+    "@test/eslint-config": "workspace:0.0.0",
+    "@test/prettier-config": "workspace:0.0.0",
+    "@test/typescript-config": "workspace:0.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",

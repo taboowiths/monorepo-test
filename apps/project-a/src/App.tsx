@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="App">
       <h1>Project A - Test Application</h1>
-
+      <h2>This is a test application for the Project A</h2>
       <div className="card">
         <h2>Counter Hook Test</h2>
         <p>Count: {count}</p>

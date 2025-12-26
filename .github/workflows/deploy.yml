@@ -51,14 +51,16 @@ jobs:
       - name: Check which projects changed
         id: check
         run: |
-          CHANGED_LIST=$(pnpm turbo ls --filter=...[${{ env.BASE }}] --format=json)
+          PLAN=$(pnpm turbo build --filter=...[${{ env.BASE }}] --dry=json)
 
-          if [[ $CHANGED_LIST == *"@test/project-a"* ]]; then
+          if echo "$PLAN" | grep -q "\"package\": \"@test/project-a\""; then
             echo "project_a=true" >> $GITHUB_OUTPUT
+            echo "Detected change in project-a"
           fi
 
-          if [[ $CHANGED_LIST == *"@test/project-b"* ]]; then
+          if echo "$PLAN" | grep -q "\"package\": \"@test/project-b\""; then
             echo "project_b=true" >> $GITHUB_OUTPUT
+            echo "Detected change in project-b"
           fi
 
   # 2. Develop 환경 배포 (자동 실행)

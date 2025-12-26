@@ -50,11 +50,16 @@ jobs:
 
       - name: Check which projects changed
         id: check
-        # 빌드 결과물(dist) 폴더 존재 여부로 변경 프로젝트 식별
-        # Turborepo가 빌드하지 않은 프로젝트는 dist 폴더가 갱신되지 않거나 스킵됨
         run: |
-          if [ -d "apps/project-a/dist" ]; then echo "project_a=true" >> $GITHUB_OUTPUT; fi
-          if [ -d "apps/project-b/dist" ]; then echo "project_b=true" >> $GITHUB_OUTPUT; fi
+          CHANGED_LIST=$(pnpm turbo ls --filter=...[${{ env.BASE }}] --format=json)
+
+          if [[ $CHANGED_LIST == *"@test/project-a"* ]]; then
+            echo "project_a=true" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ $CHANGED_LIST == *"@test/project-b"* ]]; then
+            echo "project_b=true" >> $GITHUB_OUTPUT
+          fi
 
   # 2. Develop 환경 배포 (자동 실행)
   deploy-dev:

@@ -15,7 +15,7 @@ export function Button({
     border: "none",
     cursor: "pointer",
     backgroundColor: variant === "primary" ? "#007bff" : "#6c757d",
-    color: "black",
+    color: "white",
   };
 
   return (

@@ -1,7 +1,8 @@
 name: Selective CI/CD (Multi-Branch)
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
       - develop
@@ -10,6 +11,7 @@ on:
 jobs:
   # 1. 변경사항 감지 및 빌드
   build-and-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       project_a: ${{ steps.check.outputs.project_a }}
@@ -34,12 +36,11 @@ jobs:
       - name: Determine Base Ref
         id: set-base
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            BASE_REF="${{ github.event.before }}"
-            if [ "$BASE_REF" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE_REF" ]; then
-              BASE_REF="HEAD^1"
-            fi
-            echo "BASE=$BASE_REF" >> $GITHUB_ENV
+          # PR Merge 상황에서는 PR의 target 브랜치와 비교하는 것이 가장 정확합니다.
+          if [[ "${{ github.base_ref }}" == "main" ]]; then
+            echo "BASE=origin/main" >> $GITHUB_ENV 
+          elif [[ "${{ github.base_ref }}" == "develop" ]]; then
+            echo "BASE=origin/develop" >> $GITHUB_ENV
           else
             echo "BASE=HEAD^1" >> $GITHUB_ENV
           fi
@@ -59,7 +60,7 @@ jobs:
   # 2. Develop 환경 배포 (자동 실행)
   deploy-dev:
     needs: build-and-test
-    if: github.ref == 'refs/heads/develop'
+    if: github.event.pull_request.base.ref == 'develop' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - name: Project A Dev Deploy
@@ -76,7 +77,7 @@ jobs:
   # 3. Production 환경 배포 (승인 필요)
   deploy-prod:
     needs: build-and-test
-    if: github.ref == 'refs/heads/main'
+    if: github.event.pull_request.base.ref == 'main' || github.ref == 'refs/heads/main'
     environment: production # GitHub Repo -> Settings -> Environments -> production 설정 필요
     runs-on: ubuntu-latest
     steps:

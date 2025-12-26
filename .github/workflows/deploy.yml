@@ -60,7 +60,9 @@ jobs:
   # 2. Develop 환경 배포 (자동 실행)
   deploy-dev:
     needs: build-and-test
-    if: github.event.pull_request.base.ref == 'develop' || github.ref == 'refs/heads/develop'
+    if: |
+      (github.event.pull_request.base.ref == 'develop') || 
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     steps:
       - name: Project A Dev Deploy
@@ -77,8 +79,10 @@ jobs:
   # 3. Production 환경 배포 (승인 필요)
   deploy-prod:
     needs: build-and-test
-    if: github.event.pull_request.base.ref == 'main' || github.ref == 'refs/heads/main'
-    environment: production # GitHub Repo -> Settings -> Environments -> production 설정 필요
+    if: |
+      (github.event.pull_request.base.ref == 'main') || 
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Project A Prod Deploy

@@ -36,11 +36,10 @@ jobs:
       - name: Determine Base Ref
         id: set-base
         run: |
-          # PR Merge 상황에서는 PR의 target 브랜치와 비교하는 것이 가장 정확합니다.
-          if [[ "${{ github.base_ref }}" == "main" ]]; then
-            echo "BASE=origin/main" >> $GITHUB_ENV 
-          elif [[ "${{ github.base_ref }}" == "develop" ]]; then
-            echo "BASE=origin/develop" >> $GITHUB_ENV
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "BASE=HEAD^1" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "BASE=HEAD^1" >> $GITHUB_ENV
           else
             echo "BASE=HEAD^1" >> $GITHUB_ENV
           fi

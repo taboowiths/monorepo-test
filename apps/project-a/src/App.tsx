@@ -4,7 +4,7 @@ import './App.css';
 import { Button, Input } from '@test/ui';
 
 function App() {
-  const { count, increment, decrement, reset } = useCounter(5);
+  const { count, increment, decrement, reset } = useCounter(6);
   const { value: isVisible, toggle } = useToggle(false);
   const [inputValue, setInputValue] = useState('');
 
